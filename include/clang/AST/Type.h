@@ -153,7 +153,7 @@ public:
   enum {
     /// The maximum supported address space number.
     /// 23 bits should be enough for anyone.
-    MaxAddressSpace = 0x7fffffu,
+    MaxAddressSpace = 0x3fffffu,
 
     /// The width of the "fast" qualifier mask.
     FastWidth = 3,
@@ -264,6 +264,10 @@ public:
     assert(!(mask & ~CVRMask) && "bitmask contains non-CVR bits");
     Mask |= mask;
   }
+
+  bool hasMemoryCapability() const { return Mask & MemCapMask; }
+  void addMemoryCapability() { Mask |= MemCapMask; }
+  void removeMemoryCapability() { Mask &= ~MemCapMask; }
 
   bool hasOutput() const { return Mask & OMask; }
   void addOutput() { Mask |= OMask; }
@@ -508,18 +512,19 @@ public:
 
 private:
 
-  // bits:     |0 1 2|3|4|5 .. 6|7  ..  9|10  ...   31|
-  //           |C R V|O|I|GCAttr|Lifetime|AddressSpace|
+  // bits:     |0 1 2|   3  |4|5|6 .. 7|8  .. 10|11  ...   31|
+  //           |C R V|MemCap|O|I|GCAttr|Lifetime|AddressSpace|
   uint32_t Mask;
 
-  static const uint32_t OMask = 0x8;
-  static const uint32_t IMask = 0x10;
-  static const uint32_t GCAttrMask = 0x60;
-  static const uint32_t GCAttrShift = 5;
-  static const uint32_t LifetimeMask = 0x380;
-  static const uint32_t LifetimeShift = 7;
-  static const uint32_t AddressSpaceMask = ~(IMask|OMask|CVRMask|GCAttrMask|LifetimeMask);
-  static const uint32_t AddressSpaceShift = 10;
+  static const uint32_t MemCapMask = 0x8;
+  static const uint32_t OMask = 0x10;
+  static const uint32_t IMask = 0x20;
+  static const uint32_t GCAttrMask = 0xC0;
+  static const uint32_t GCAttrShift = 6;
+  static const uint32_t LifetimeMask = 0x700;
+  static const uint32_t LifetimeShift = 8;
+  static const uint32_t AddressSpaceMask = ~(MemCapMask|IMask|OMask|CVRMask|GCAttrMask|LifetimeMask);
+  static const uint32_t AddressSpaceShift = 11;
 };
 
 /// A std::pair-like structure for storing a qualified type split

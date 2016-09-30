@@ -6195,7 +6195,8 @@ static void HandleMemoryCapabilityAttr(QualType& CurType, const AttributeList &A
     return;
   }*/
 
-  // We currently translate this attribute to address_space(200)
+  // We currently translate this attribute to address_space(200) to maintain
+  // compability with the existing implementation
   CurType = S.Context.getAddrSpaceQualType(CurType, 200);
 }
 
