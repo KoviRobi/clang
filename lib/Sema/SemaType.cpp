@@ -6186,22 +6186,96 @@ static void HandleNeonVectorTypeAttr(QualType& CurType,
 /// HandleMemoryCapabilityAttr - Process the memory_capability attribute. It is only
 /// applicable to pointer types and specifies that this pointer should be treated as
 /// a capability.
-static void HandleMemoryCapabilityAttr(QualType& CurType, const AttributeList &Attr,
-                                 Sema &S) {
-  // CurType should be a pointer type
-  /*if (!CurType->isPointerType()) {
-    S.Diag(Attr.getLoc(), diag::err_attribute_pointers_only) << CurType;
-    Attr.setInvalid();
-    return;
-  }*/
+static void HandleMemoryCapabilityAttr(QualType &CurType, TypeProcessingState &state,
+                                       TypeAttrLocation TAL, AttributeList& attr) {
+  static bool isDeprecatedUse = false;
+  Declarator &declarator = state.getDeclarator();
+  Sema& S = state.getSema();
 
-  Qualifiers Quals;
-  Quals.addMemoryCapability();
-  CurType = S.Context.getQualifiedType(CurType, Quals);
+  if (TAL == TAL_DeclSpec) {
+    // possible deprecated use; move to the outermost pointer declarator
+    // unless this is a typedef'd pointer type
+    if (isa<TypedefType>(CurType) && CurType->isPointerType()) {
+      CurType = S.Context.getMemoryCapabilityQualType(CurType);
+      return;
+    } else {
+      isDeprecatedUse = true;
+      for (unsigned i = state.getCurrentChunkIndex(); i != 0; --i) {
+        DeclaratorChunk &chunk = declarator.getTypeObject(i-1);
+        switch (chunk.Kind) {
+          case DeclaratorChunk::Pointer: {
+            moveAttrFromListToList(attr, state.getCurrentAttrListRef(),
+                                   chunk.getAttrListRef());
+            return;
+          }
+          case DeclaratorChunk::BlockPointer:
+          case DeclaratorChunk::Paren:
+          case DeclaratorChunk::Array:
+          case DeclaratorChunk::Function:
+          case DeclaratorChunk::Reference:
+          case DeclaratorChunk::MemberPointer:
+            continue;
+        }
+      }
+    }
+  } else {
+    unsigned currChunkIdx = state.getCurrentChunkIndex();
+    DeclaratorChunk &chunk = declarator.getTypeObject(state.getCurrentChunkIndex());
+    if (chunk.Kind == DeclaratorChunk::Pointer) {
+      if (isDeprecatedUse) {
+        // Check for an ambiguous use where this is more than one pointer
+        // level, like __capability T **. We do this by checking that the next
+        // chunk isn't a pointer without the attribute.
+        if (currChunkIdx > 0) {
+          DeclaratorChunk &nextChunk = declarator.getTypeObject(currChunkIdx-1);
+          if (nextChunk.Kind == DeclaratorChunk::Pointer) {
+            const AttributeList *Attr = nextChunk.getAttrs();
+            while (Attr && Attr->getKind() != AttributeList::AT_MemoryCapability)
+              Attr = Attr->getNext();
+            if (!Attr) {
+              isDeprecatedUse = false;
+              S.Diag(nextChunk.Loc, diag::err_memory_capability_attribute_ambiguous);
+              return;
+            }
+          }
+        }
+
+        // Output a deprecated usage warning with a FixItHint
+        SourceRange AttrRange;
+        SourceLocation AttrLoc = attr.getLoc();
+        if (AttrLoc.isValid()) {
+          // The memory_capability attribute should always be inserted via
+          // the predefined __capability macro, but we also cater for when it
+          // isn't in the else branch
+          if (AttrLoc.isMacroID()) {
+            std::pair<SourceLocation, SourceLocation> expansionRange 
+                        = S.SourceMgr.getImmediateExpansionRange(AttrLoc);
+            AttrRange.setBegin(expansionRange.first);
+            AttrRange.setEnd(expansionRange.second);
+          } else {
+            // Calculate extended range to include the preceding
+            // __attribute(( and following ))
+            AttrRange.setBegin(AttrLoc.getLocWithOffset(-15));
+            AttrRange.setEnd(AttrLoc.getLocWithOffset(18));
+          }
+        }
+        S.Diag(chunk.Loc, diag::warn_memory_capability_attribute_location)
+            << FixItHint::CreateRemoval(AttrRange)
+            << FixItHint::CreateInsertion(chunk.Loc.getLocWithOffset(1),
+                                          " __capability ");
+        isDeprecatedUse = false;
+      }
+      CurType = S.Context.getMemoryCapabilityQualType(CurType);
+      return;
+    } else
+      goto error;
+  }
+  error:
+    S.Diag(attr.getLoc(), diag::err_memory_capability_attribute_pointers_only) << CurType;
 
   // We currently translate this attribute to address_space(200) to maintain
   // compability with the existing implementation
-  CurType = S.Context.getAddrSpaceQualType(CurType, 200);
+  //CurType = S.Context.getAddrSpaceQualType(CurType, 200);
 }
 
 static void processTypeAttrs(TypeProcessingState &state, QualType &type,
@@ -6368,8 +6442,8 @@ static void processTypeAttrs(TypeProcessingState &state, QualType &type,
       break;
 
     case AttributeList::AT_MemoryCapability:
-      HandleMemoryCapabilityAttr(type, attr, state.getSema());
       attr.setUsedAsTypeAttr();
+      HandleMemoryCapabilityAttr(type, state, TAL, attr);
       break;
     }
   } while ((attrs = next));

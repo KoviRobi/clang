@@ -2201,6 +2201,22 @@ ASTContext::getExtQualType(const Type *baseType, Qualifiers quals) const {
 }
 
 QualType
+ASTContext::getMemoryCapabilityQualType(QualType T) const {
+  QualType CanT = getCanonicalType(T);
+  if (CanT.isMemoryCapabilityType())
+    return T;
+
+  // If we are composing extended qualifiers together, merge together
+  // into one ExtQuals node.
+  QualifierCollector Quals;
+  const Type *TypeNode = Quals.strip(T);
+
+  Quals.addMemoryCapability();
+
+  return getExtQualType(TypeNode, Quals);
+}
+
+QualType
 ASTContext::getAddrSpaceQualType(QualType T, unsigned AddressSpace) const {
   QualType CanT = getCanonicalType(T);
   if (CanT.getAddressSpace() == AddressSpace)

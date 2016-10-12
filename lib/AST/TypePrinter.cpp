@@ -1515,6 +1515,9 @@ bool Qualifiers::isEmptyWhenPrinted(const PrintingPolicy &Policy) const {
   if (getAddressSpace())
     return false;
 
+  if (hasMemoryCapability())
+    return false;
+
   if (getObjCGCAttr())
     return false;
 

@@ -1937,6 +1937,19 @@ bool Type::isIncompleteType(NamedDecl **Def) const {
   }
 }
 
+bool QualType::isMemoryCapabilityType() const {
+  const QualType CanonicalType = getCanonicalType();
+  if (CanonicalType.getQualifiers().hasMemoryCapability()) {
+    return true;
+  }
+  else if (const BuiltinType *BT = dyn_cast<BuiltinType>(CanonicalType)) {
+    auto Kind = BT->getKind();
+    if (Kind == BuiltinType::IntCap || Kind == BuiltinType::UIntCap)
+      return true;
+  }
+  return false;
+}
+
 bool QualType::isCapabilityType(ASTContext &Context) const {
   const QualType CanonicalType = getCanonicalType();
   unsigned CapAS = Context.getTargetInfo().AddressSpaceForCapabilities();
