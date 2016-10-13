@@ -1,6 +1,6 @@
 // RUN: %clang_cc1 -triple cheri-unknown-freebsd -dM -x c -E /dev/null | FileCheck -check-prefix=CHECK-MACRO %s
 // RUN: %clang_cc1 -DDEPRECATED=1 -triple cheri-unknown-freebsd -fsyntax-only -verify %s
-// RUN: %clang_cc1 -DDEPRECATED=1 -triple cheri-unknown-freebsd -fsyntax-only -ast-dump %s | FileCheck -check-prefix=CHECK-DEPRECATED %s
+// RUN: %clang_cc1 -DDEPRECATED=1 -triple cheri-unknown-freebsd -fsyntax-only -fdiagnostics-parseable-fixits -ast-dump %s 2>&1 | FileCheck -check-prefix=CHECK-DEPRECATED %s
 // RUN: %clang_cc1 -DAMBIGUOUS=1 -triple cheri-unknown-freebsd -fsyntax-only -verify %s
 // RUN: %clang_cc1 -DNORMAL=1 -triple cheri-unknown-freebsd -fsyntax-only -verify %s
 // RUN: %clang_cc1 -DNORMAL=1 -triple cheri-unknown-freebsd -fsyntax-only -ast-dump %s | FileCheck -check-prefix=CHECK-NORMAL %s
@@ -14,9 +14,14 @@
 
 #ifdef DEPRECATED
 __capability int *x; // expected-warning{{use of __capability before}}
-// CHECK-DEPRECATED: x 'int * __capability'
+// CHECK-DEPRECATED: fix-it:{{.*}}:{16:1-16:14}:""
+// CHECK-DEPRECATED: fix-it:{{.*}}:{16:19-16:19}:" __capability "
 
 __capability int (*f)(void); // expected-warning{{use of __capability before}}
+// CHECK-DEPRECATED: fix-it:{{.*}}:{20:1-20:14}:""
+// CHECK-DEPRECATED: fix-it:{{.*}}:{20:20-20:20}:" __capability "
+
+// CHECK-DEPRECATED: x 'int * __capability'
 // CHECK-DEPRECATED: f 'int (* __capability)(void)'
 #endif
 
