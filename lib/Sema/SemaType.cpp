@@ -6204,8 +6204,11 @@ static void HandleMemoryCapabilityAttr(QualType &CurType, TypeProcessingState &s
         DeclaratorChunk &chunk = declarator.getTypeObject(i-1);
         switch (chunk.Kind) {
           case DeclaratorChunk::Pointer: {
-            moveAttrFromListToList(attr, state.getCurrentAttrListRef(),
-                                   chunk.getAttrListRef());
+            AttributeList *attrCopy = declarator.getAttributePool()
+                   .create(attr.getName(), attr.getRange(),
+                           attr.getScopeName(), attr.getScopeLoc(),
+                           nullptr, 0, AttributeList::AS_GNU);
+            spliceAttrIntoList(*attrCopy, chunk.getAttrListRef());
             return;
           }
           case DeclaratorChunk::BlockPointer:

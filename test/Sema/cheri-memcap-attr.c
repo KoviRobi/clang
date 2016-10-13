@@ -7,6 +7,7 @@
 // RUN: %clang_cc1 -DNOT_POINTER=1 -triple cheri-unknown-freebsd -fsyntax-only -verify %s
 // RUN: %clang_cc1 -DTYPEDEF=1 -triple cheri-unknown-freebsd -fsyntax-only -verify %s
 // RUN: %clang_cc1 -DTYPEDEF=1 -triple cheri-unknown-freebsd -fsyntax-only -ast-dump %s | FileCheck -check-prefix=CHECK-TYPEDEF %s
+// RUN: %clang_cc1 -DLIST=1 -triple cheri-unknown-freebsd -fsyntax-only -ast-dump %s | FileCheck -check-prefix=CHECK-LIST %s
 
 // Test expected compiler warnings/errors for the __capability qualifier 
 
@@ -14,12 +15,12 @@
 
 #ifdef DEPRECATED
 __capability int *x; // expected-warning{{use of __capability before}}
-// CHECK-DEPRECATED: fix-it:{{.*}}:{16:1-16:14}:""
-// CHECK-DEPRECATED: fix-it:{{.*}}:{16:19-16:19}:" __capability "
+// CHECK-DEPRECATED: fix-it:{{.*}}:{[[@LINE-1]]:1-[[@LINE-1]]:14}:""
+// CHECK-DEPRECATED: fix-it:{{.*}}:{[[@LINE-2]]:19-[[@LINE-2]]:19}:" __capability "
 
 __capability int (*f)(void); // expected-warning{{use of __capability before}}
-// CHECK-DEPRECATED: fix-it:{{.*}}:{20:1-20:14}:""
-// CHECK-DEPRECATED: fix-it:{{.*}}:{20:20-20:20}:" __capability "
+// CHECK-DEPRECATED: fix-it:{{.*}}:{[[@LINE-1]]:1-[[@LINE-1]]:14}:""
+// CHECK-DEPRECATED: fix-it:{{.*}}:{[[@LINE-2]]:20-[[@LINE-2]]:20}:" __capability "
 
 // CHECK-DEPRECATED: x 'int * __capability'
 // CHECK-DEPRECATED: f 'int (* __capability)(void)'
@@ -46,4 +47,10 @@ __capability int var1; // expected-error{{only applies to pointers}}
 typedef int* intptr;
 __capability intptr x; // CHECK-TYPEDEF: x ' __capability intptr':'int * __capability'
 __capability intptr *y; // CHECK-TYPEDEF: y ' __capability intptr *'
+#endif
+
+#ifdef LIST
+__capability int *a, *b;
+// CHECK-LIST: a 'int * __capability'
+// CHECK-LIST: b 'int * __capability'
 #endif
