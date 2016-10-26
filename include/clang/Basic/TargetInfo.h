@@ -939,20 +939,6 @@ public:
   /// SupportsCapabilities - Returns true if the target supports capabilities.
   virtual bool SupportsCapabilities() const { return false; }
 
-  /// AddressSpaceForCapabilities - If this target supports capabilities,
-  /// returns the address space used to represent them.  The result is
-  /// undefined otherwise.
-  //virtual int AddressSpaceForCapabilities() const { return -1; }
-
-  /// AddressSpaceForStack - Returns the address space to use for stack
-  /// allocations
-  //virtual int AddressSpaceForStack() const { return 0; }
-
-  /// AddressSpaceForObjC - Returns the address space to use for 
-  /// Objective-C objects.
-  //virtual int AddressSpaceForObjC() const { return 0; }
-
-
   /// Controls if __builtin_longjmp / __builtin_setjmp can be lowered to
   /// llvm.eh.sjlj.longjmp / llvm.eh.sjlj.setjmp.
   virtual bool hasSjLjLowering() const {

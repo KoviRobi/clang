@@ -739,12 +739,6 @@ public:
   /// (C++0x [basic.types]p9)
   bool isCXX11PODType(ASTContext &Context) const;
 
-  /// \brief Determine whether this type is a memory capability.
-  //bool isMemoryCapabilityType() const;
-
-  /// \brief Determine whether this type is a capability.
-  //bool isCapabilityType(ASTContext &Context) const;
-
   /// Return true if this is a trivial type per (C++0x [basic.types]p9)
   bool isTrivialType(ASTContext &Context) const;
 

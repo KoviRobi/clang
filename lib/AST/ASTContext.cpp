@@ -747,7 +747,6 @@ ASTContext::ASTContext(LangOptions &LOpts, SourceManager &SM,
       SanitizerBL(new SanitizerBlacklist(LangOpts.SanitizerBlacklistFiles, SM)),
       AddrSpaceMap(nullptr), Target(nullptr), AuxTarget(nullptr),
       PrintingPolicy(LOpts),
-      //DefaultAS(0),
       Idents(idents), Selectors(sels),
       BuiltinInfo(builtins), DeclarationNames(*this), ExternalSource(nullptr),
       Listener(nullptr), Comments(SM), CommentsLoaded(false),
@@ -1001,7 +1000,6 @@ void ASTContext::InitBuiltinTypes(const TargetInfo &Target,
   assert(VoidTy.isNull() && "Context reinitialized?");
 
   this->Target = &Target;
-  //DefaultAS = Target.AddressSpaceForStack();
 
   this->AuxTarget = AuxTarget;
 
@@ -2212,23 +2210,6 @@ ASTContext::getExtQualType(const Type *baseType, Qualifiers quals) const {
   return QualType(eq, fastQuals);
 }
 
-/*
-QualType
-ASTContext::getMemoryCapabilityQualType(QualType T) const {
-  QualType CanT = getCanonicalType(T);
-  if (CanT.isMemoryCapabilityType())
-    return T;
-
-  // If we are composing extended qualifiers together, merge together
-  // into one ExtQuals node.
-  QualifierCollector Quals;
-  const Type *TypeNode = Quals.strip(T);
-
-  Quals.addMemoryCapability();
-
-  return getExtQualType(TypeNode, Quals);
-}*/
-
 QualType
 ASTContext::getAddrSpaceQualType(QualType T, unsigned AddressSpace) const {
   QualType CanT = getCanonicalType(T);
@@ -2508,8 +2489,6 @@ QualType ASTContext::getBlockPointerType(QualType T) const {
       BlockPointerTypes.FindNodeOrInsertPos(ID, InsertPos);
     assert(!NewIP && "Shouldn't be in the map!"); (void)NewIP;
   }
-  //if (DefaultAS != 0)
-  //  T = getAddrSpaceQualType(T, DefaultAS);
   BlockPointerType *New
     = new (*this, TypeAlignment) BlockPointerType(T, Canonical);
   Types.push_back(New);
@@ -4566,14 +4545,7 @@ const ArrayType *ASTContext::getAsArrayType(QualType T) const {
 QualType ASTContext::getAdjustedParameterType(QualType T) const {
   if (T->isFunctionType() || T->isArrayType())
     return getDecayedType(T);
-  //if (T->isArrayType()) {
-    //if (T.getAddressSpace() == 0)
-    //  T = getAddrSpaceQualType(T, DefaultAS);
-  //  T = getDecayedType(T);
-  //}
-  //if (T->isVoidType() || T.getAddressSpace())
   return T;
-  //return getAddrSpaceQualType(T, DefaultAS);
 }
 
 QualType ASTContext::getSignatureParameterType(QualType T) const {
@@ -8203,7 +8175,6 @@ static QualType DecodeTypeFromStr(const char *&Str, const ASTContext &Context,
     if (Type->isArrayType())
       Type = Context.getArrayDecayedType(Type);
     else {
-      //Type = Context.getAddrSpaceQualType(Type, Context.getDefaultAS());
       Type = Context.getLValueReferenceType(Type);
     }
     break;
@@ -8252,7 +8223,6 @@ static QualType DecodeTypeFromStr(const char *&Str, const ASTContext &Context,
       Error = ASTContext::GE_Missing_stdio;
       return QualType();
     }
-    //Type = Context.getAddrSpaceQualType(Type, Context.getDefaultAS());
     break;
   case 'J':
     if (Signed)
@@ -8264,7 +8234,6 @@ static QualType DecodeTypeFromStr(const char *&Str, const ASTContext &Context,
       Error = ASTContext::GE_Missing_setjmp;
       return QualType();
     }
-    //Type = Context.getAddrSpaceQualType(Type, Context.getDefaultAS());
     break;
   case 'K':
     assert(HowLong == 0 && !Signed && !Unsigned && "Bad modifiers for 'K'!");
@@ -8274,7 +8243,6 @@ static QualType DecodeTypeFromStr(const char *&Str, const ASTContext &Context,
       Error = ASTContext::GE_Missing_ucontext;
       return QualType();
     }
-    //Type = Context.getAddrSpaceQualType(Type, Context.getDefaultAS());
     break;
   case 'p':
     Type = Context.getProcessIDType();
@@ -8295,9 +8263,7 @@ static QualType DecodeTypeFromStr(const char *&Str, const ASTContext &Context,
       if (End != Str && AddrSpace != 0) {
         Type = Context.getAddrSpaceQualType(Type, AddrSpace);
         Str = End;
-      }/* else {
-        Type = Context.getAddrSpaceQualType(Type, Context.getDefaultAS());
-      }*/
+      }
       if (c == '*') {
         bool IsMemCap = false;
         if (*Str == 'm') {

@@ -447,7 +447,6 @@ private:
   const TargetInfo *Target;
   const TargetInfo *AuxTarget;
   clang::PrintingPolicy PrintingPolicy;
-  //unsigned DefaultAS;
   
 public:
   IdentifierTable &Idents;
@@ -2192,10 +2191,6 @@ public:
   unsigned getTargetAddressSpace(Qualifiers Q) const {
     return getTargetAddressSpace(Q.getAddressSpace());
   }
-
-  /*unsigned getDefaultAS() const {
-    return DefaultAS;
-  }*/
 
   unsigned getTargetAddressSpace(unsigned AS) const {
     if (AS < LangAS::Offset || AS >= LangAS::Offset + LangAS::Count)

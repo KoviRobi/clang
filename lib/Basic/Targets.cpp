@@ -6903,15 +6903,9 @@ struct MipsCheriTargetInfo : public Mips64EBTargetInfo {
 
   bool SupportsCapabilities() const override { return true; }
 
-  //int AddressSpaceForCapabilities() const override { return 200; }
-
-
-  //int AddressSpaceForObjC() const override { return 200; }
-
   bool setABI(const std::string &Name) override {
     return Mips64EBTargetInfo::setABI(Name);
   }
-  //int AddressSpaceForStack() const override { return CapabilityABI ? 200 : 0; }
 };
 
 class Mips64ELTargetInfo : public Mips64TargetInfoBase {
