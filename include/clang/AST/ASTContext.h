@@ -447,7 +447,7 @@ private:
   const TargetInfo *Target;
   const TargetInfo *AuxTarget;
   clang::PrintingPolicy PrintingPolicy;
-  unsigned DefaultAS;
+  //unsigned DefaultAS;
   
 public:
   IdentifierTable &Idents;
@@ -1059,9 +1059,9 @@ public:
 
   /// \brief Return the uniqued reference to the type for a pointer to
   /// the specified type.
-  QualType getPointerType(QualType T) const;
-  CanQualType getPointerType(CanQualType T) const {
-    return CanQualType::CreateUnsafe(getPointerType((QualType) T));
+  QualType getPointerType(QualType T, bool isMemCap = false) const;
+  CanQualType getPointerType(CanQualType T, bool isMemCap = false) const {
+    return CanQualType::CreateUnsafe(getPointerType((QualType) T, isMemCap));
   }
 
   /// \brief Return the uniqued reference to a type adjusted from the original
@@ -2193,9 +2193,9 @@ public:
     return getTargetAddressSpace(Q.getAddressSpace());
   }
 
-  unsigned getDefaultAS() const {
+  /*unsigned getDefaultAS() const {
     return DefaultAS;
-  }
+  }*/
 
   unsigned getTargetAddressSpace(unsigned AS) const {
     if (AS < LangAS::Offset || AS >= LangAS::Offset + LangAS::Count)

@@ -1870,25 +1870,26 @@ QualType Sema::BuildPointerType(QualType T,
   if (getLangOpts().ObjCAutoRefCount)
     T = inferARCLifetimeForPointee(*this, T, Loc, /*reference*/ false);
 
-  if (T.getAddressSpace() == 0) {
-    int AS;
+  bool IsMemCap = false;
+  //if (T.getAddressSpace() == 0) {
+  //  int AS;
     switch (PointerInterpretation) {
       case PIK_Capability:
-        AS =Context.getTargetInfo().AddressSpaceForCapabilities();
+        IsMemCap = true;
         break;
       case PIK_Integer:
-        AS = 0;
+        IsMemCap = false;
         break;
       case PIK_Default:
-        AS = Context.getDefaultAS();
+        IsMemCap = Context.getTargetInfo().areAllPointersCapabilities();
         break;
       case PIK_Invalid:
         llvm_unreachable("Invalid pointer interpretation!");
     }
-    T = Context.getAddrSpaceQualType(T, AS);
-  }
+    //T = Context.getAddrSpaceQualType(T, AS);
+  //}
   // Build the pointer type.
-  return Context.getPointerType(T);
+  return Context.getPointerType(T, IsMemCap);
 }
 
 /// \brief Build a reference type.
@@ -3654,8 +3655,8 @@ static TypeSourceInfo *GetFullTypeForDeclarator(TypeProcessingState &state,
       }
       // Make sure that array elements are in the correct AS so that array to
       // pointer decay works correctly.
-      if ((T.getAddressSpace() == 0) && (Context.getDefaultAS() != 0))
-        T = Context.getAddrSpaceQualType(T, Context.getDefaultAS());
+      //if ((T.getAddressSpace() == 0) && (Context.getDefaultAS() != 0))
+      //  T = Context.getAddrSpaceQualType(T, Context.getDefaultAS());
       DeclaratorChunk::ArrayTypeInfo &ATI = DeclType.Arr;
       Expr *ArraySize = static_cast<Expr*>(ATI.NumElts);
       ArrayType::ArraySizeModifier ASM;
@@ -6196,8 +6197,8 @@ static void HandleMemoryCapabilityAttr(QualType &CurType, TypeProcessingState &s
     // possible deprecated use; move to the outermost pointer declarator
     // unless this is a typedef'd pointer type
     if (isa<TypedefType>(CurType) && CurType->isPointerType()) {
-      CurType = S.Context.getMemoryCapabilityQualType(CurType);
-      return;
+      // FIXME-cheri-qual: Create a new instance of this Typedef but whereby
+      // the underlying pointer type is now a memory capability
     } else {
       isDeprecatedUse = true;
       for (unsigned i = state.getCurrentChunkIndex(); i != 0; --i) {
@@ -6268,17 +6269,14 @@ static void HandleMemoryCapabilityAttr(QualType &CurType, TypeProcessingState &s
                                           " __capability ");
         isDeprecatedUse = false;
       }
-      CurType = S.Context.getMemoryCapabilityQualType(CurType);
-      return;
-    } else
-      goto error;
+      if (const PointerType *PT = CurType->getAs<PointerType>()) {
+        CurType = S.Context.getPointerType(PT->getPointeeType(), true);
+        return;
+      }
+    }
   }
-  error:
-    S.Diag(attr.getLoc(), diag::err_memory_capability_attribute_pointers_only) << CurType;
-
-  // We currently translate this attribute to address_space(200) to maintain
-  // compability with the existing implementation
-  //CurType = S.Context.getAddrSpaceQualType(CurType, 200);
+  
+  S.Diag(attr.getLoc(), diag::err_memory_capability_attribute_pointers_only) << CurType;
 }
 
 static void processTypeAttrs(TypeProcessingState &state, QualType &type,

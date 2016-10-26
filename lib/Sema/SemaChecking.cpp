@@ -110,21 +110,23 @@ static bool SemaBuiltinMemcapCreate(Sema &S, CallExpr *TheCall) {
   }
   // FIXME: Typecheck args 0 and 1
   ASTContext &C = S.Context;
+  bool allPtrsAreMemCaps = C.getTargetInfo().areAllPointersCapabilities();
   // FIXME: Error on null
   auto BaseFnTy = cast<FunctionProtoType>(FnAttrType->getModifiedType());
   auto ReturnFnTy = C.adjustFunctionType(BaseFnTy,
       BaseFnTy->getExtInfo().withCallingConv(CC_CheriCCallback));
-  auto ReturnTy = C.getAddrSpaceQualType(QualType(ReturnFnTy, 0), C.getDefaultAS());
-  ReturnTy = C.getPointerType(ReturnTy);
-  ReturnTy = C.getAddrSpaceQualType(ReturnTy, C.getDefaultAS());
+  //auto ReturnTy = C.getAddrSpaceQualType(QualType(ReturnFnTy, 0), C.getDefaultAS());
+  auto ReturnTy = C.getPointerType(QualType(ReturnFnTy, 0), allPtrsAreMemCaps);
+  //ReturnTy = C.getAddrSpaceQualType(ReturnTy, C.getDefaultAS());
 
   QualType ArgTys[] = { TheCall->getArg(0)->getType(),
     TheCall->getArg(1)->getType(), FnType };
   QualType BuiltinTy = C.getFunctionType(
       ReturnTy, ArgTys, FunctionProtoType::ExtProtoInfo());
-  BuiltinTy = C.getAddrSpaceQualType(BuiltinTy, C.getDefaultAS());
-  QualType BuiltinPtrTy = C.getPointerType(BuiltinTy);
-  BuiltinPtrTy = C.getAddrSpaceQualType(BuiltinPtrTy, C.getDefaultAS());
+  //BuiltinTy = C.getAddrSpaceQualType(BuiltinTy, C.getDefaultAS());
+  QualType BuiltinPtrTy = C.getPointerType(BuiltinTy, allPtrsAreMemCaps);
+  //BuiltinPtrTy = C.getAddrSpaceQualType(BuiltinPtrTy, C.getDefaultAS());
+  //FIXME: BuiltinPtrTy is unused. Is it needed?
 
   TheCall->setType(ReturnTy);
   return false;
@@ -285,8 +287,9 @@ Sema::CheckBuiltinFunctionCall(FunctionDecl *FDecl, unsigned BuiltinID,
   
   switch (BuiltinID) {
   case Builtin::BI__builtin_return_address:
-    TheCall->setType(Context.getPointerType(Context.getAddrSpaceQualType(
-                    Context.VoidTy, Context.getDefaultAS())));
+    //TheCall->setType(Context.getPointerType(Context.getAddrSpaceQualType(
+    //                Context.VoidTy, Context.getDefaultAS())));
+    TheCall->setType(Context.VoidPtrTy);
     break;
   case Builtin::BI__builtin___CFStringMakeConstantString:
     assert(TheCall->getNumArgs() == 1 &&

@@ -1437,7 +1437,7 @@ Sema::CreateGenericSelectionExpr(SourceLocation KeyLoc,
 
   SmallVector<unsigned, 1> CompatIndices;
   unsigned DefaultIndex = -1U;
-  unsigned DefaultAS = Context.getDefaultAS();
+  //unsigned DefaultAS = Context.getDefaultAS();
   for (unsigned i = 0; i < NumAssocs; ++i) {
     QualType ControllingType = ControllingExpr->getType();
     if (!Types[i])
@@ -1445,13 +1445,13 @@ Sema::CreateGenericSelectionExpr(SourceLocation KeyLoc,
     else if (Context.typesAreCompatible(ControllingType,
                                         Types[i]->getType()))
       CompatIndices.push_back(i);
-    else if (ControllingType.getAddressSpace() == DefaultAS &&
-             Types[i]->getType().getAddressSpace() == 0) {
-      QualType ASTy = Context.getAddrSpaceQualType(Types[i]->getType(),
-              DefaultAS);
-      if (Context.typesAreCompatible(ControllingType, ASTy))
-        CompatIndices.push_back(i);
-    }
+   // else if (ControllingType.getAddressSpace() == DefaultAS &&
+   //          Types[i]->getType().getAddressSpace() == 0) {
+   //   QualType ASTy = Context.getAddrSpaceQualType(Types[i]->getType(),
+   //           DefaultAS);
+   //   if (Context.typesAreCompatible(ControllingType, ASTy))
+   //     CompatIndices.push_back(i);
+   // }
   }
 
   // C11 6.5.1.1p2 "The controlling expression of a generic selection shall have
@@ -1587,8 +1587,8 @@ Sema::ActOnStringLiteral(ArrayRef<Token> StringToks, Scope *UDLScope) {
   // OpenCL v1.1 s6.5.3: a string literal is in the constant address space.
   if (getLangOpts().OpenCL) {
     StrTy = Context.getAddrSpaceQualType(StrTy, LangAS::opencl_constant);
-  } else {
-    StrTy = Context.getAddrSpaceQualType(StrTy, Context.getDefaultAS());
+  //} else {
+  //  StrTy = Context.getAddrSpaceQualType(StrTy, Context.getDefaultAS());
   }
 
   // Pass &StringTokLocs[0], StringTokLocs.size() to factory!
@@ -3041,7 +3041,7 @@ ExprResult Sema::BuildPredefinedExpr(SourceLocation Loc,
       ResTy = Context.CharTy.withConst();
       ResTy = Context.getConstantArrayType(ResTy, LengthI, ArrayType::Normal,
                                            /*IndexTypeQuals*/ 0);
-      ResTy = Context.getAddrSpaceQualType(ResTy, Context.getDefaultAS());
+      //ResTy = Context.getAddrSpaceQualType(ResTy, Context.getDefaultAS());
       SL = StringLiteral::Create(Context, Str, StringLiteral::Ascii,
                                  /*Pascal*/ false, ResTy, Loc);
     }
@@ -5275,11 +5275,11 @@ Sema::BuildCompoundLiteralExpr(SourceLocation LParenLoc, TypeSourceInfo *TInfo,
   // In C, compound literals are l-values for some reason.
   ExprValueKind VK = getLangOpts().CPlusPlus ? VK_RValue : VK_LValue;
 
-  unsigned AS = Context.getDefaultAS();
-  if ((AS != 0) && (literalType.getAddressSpace() == 0)) {
-    literalType = Context.getAddrSpaceQualType(literalType, AS);
-    TInfo->overrideType(literalType);
-  }
+  //unsigned AS = Context.getDefaultAS();
+  //if ((AS != 0) && (literalType.getAddressSpace() == 0)) {
+  //  literalType = Context.getAddrSpaceQualType(literalType, AS);
+  //TInfo->overrideType(literalType);
+  //}
 
   return MaybeBindToTemporary(
            new (Context) CompoundLiteralExpr(LParenLoc, TInfo, literalType,
@@ -9123,8 +9123,8 @@ inline QualType Sema::CheckBitwiseOperands(
   ExprResult &LHS, ExprResult &RHS, SourceLocation Loc, bool IsCompAssign) {
   checkArithmeticNull(*this, LHS, RHS, Loc, /*isCompare=*/false);
 
-  bool isLHSCap = LHS.get()->getType().isCapabilityType(Context);
-  bool isRHSCap = RHS.get()->getType().isCapabilityType(Context);
+  bool isLHSCap = LHS.get()->getType()->isMemoryCapabilityType(Context);
+  bool isRHSCap = RHS.get()->getType()->isMemoryCapabilityType(Context);
   if ((isLHSCap && !isRHSCap) || (!isLHSCap && isRHSCap))
     Diag(Loc, diag::warn_mixed_capability_binop)
     << LHS.get()->getType() << RHS.get()->getType()
@@ -10058,8 +10058,8 @@ QualType Sema::CheckAddressOfOperand(ExprResult &OrigOp, SourceLocation OpLoc) {
     return Context.getObjCObjectPointerType(op->getType());
   QualType Ty = op->getType();
   if (Ty->isFunctionType())
-    Ty = Context.getAddrSpaceQualType(Ty, Context.getDefaultAS());
-  return Context.getPointerType(Ty);
+    return Context.getPointerType(Ty, Context.getTargetInfo().areAllPointersCapabilities());
+  return Context.getPointerType(Ty); //FIXME-cheri-qual: Should this be a memcap in the sandbox abi?
 }
 
 static void RecordModifiableNonNullParam(Sema &S, const Expr *Exp) {
@@ -11750,9 +11750,9 @@ ExprResult Sema::BuildVAArgExpr(SourceLocation BuiltinLoc,
   }
 
   // Get the va_list type
-  QualType VaListType =
-      Context.getAddrSpaceQualType(Context.getBuiltinVaListType(),
-              Context.getDefaultAS());
+  QualType VaListType = Context.getBuiltinVaListType();
+      //Context.getAddrSpaceQualType(Context.getBuiltinVaListType(),
+      //        Context.getDefaultAS());
   if (!IsMS) {
     if (VaListType->isArrayType()) {
       // Deal with implicit array decay; for example, on x86-64,
