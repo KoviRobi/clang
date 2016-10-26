@@ -8298,8 +8298,14 @@ static QualType DecodeTypeFromStr(const char *&Str, const ASTContext &Context,
       }/* else {
         Type = Context.getAddrSpaceQualType(Type, Context.getDefaultAS());
       }*/
-      if (c == '*')
-        Type = Context.getPointerType(Type);
+      if (c == '*') {
+        bool IsMemCap = false;
+        if (*Str == 'm') {
+          IsMemCap = true;
+          Str++;
+        }
+        Type = Context.getPointerType(Type, IsMemCap);
+      }
       else
         Type = Context.getLValueReferenceType(Type);
       break;
