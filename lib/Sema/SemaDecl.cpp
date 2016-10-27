@@ -5627,9 +5627,6 @@ Sema::ActOnVariableDeclarator(Scope *S, Declarator &D, DeclContext *DC,
       !hasParsedAttr(S, D, AttributeList::AT_DLLExport))
     SC = SC_Extern;
 
-  //if (R.getAddressSpace() == 0)
-  //  R = Context.getAddrSpaceQualType(R, Context.getDefaultAS());
-
   DeclContext *OriginalDC = DC;
   bool IsLocalExternDecl = SC == SC_Extern &&
                            adjustContextForLocalExternDecl(DC);
@@ -8665,8 +8662,6 @@ void Sema::CheckMain(FunctionDecl* FD, const DeclSpec& DS) {
           Context.hasSameType(QualType(qs.strip(PT->getPointeeType()), 0),
                               Context.CharTy)) {
         qs.removeConst();
-        //if (Context.getDefaultAS() == qs.getAddressSpace())
-        //  qs.removeAddressSpace();
         mismatch = !qs.empty();
       }
     }
@@ -12858,10 +12853,8 @@ FieldDecl *Sema::HandleField(Scope *S, RecordDecl *Record,
 
   // TR 18037 does not allow fields to be declared with address spaces.
   if (T.getQualifiers().hasAddressSpace()) {
-    //if (T.getAddressSpace() != Context.getDefaultAS()) {
-      Diag(Loc, diag::err_field_with_address_space);
-      D.setInvalidType();
-    //}
+    Diag(Loc, diag::err_field_with_address_space);
+    D.setInvalidType();
   }
 
   // OpenCL 1.2 spec, s6.9 r:
